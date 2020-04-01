@@ -1,0 +1,3 @@
+/Users/nstergiou/Downloads/sfpd-integration/src/test/java/be/fgov/sfpd/integration/CamelExtension.java
+/Users/nstergiou/Downloads/sfpd-integration/src/test/java/be/fgov/sfpd/integration/WireMockExtension.java
+/Users/nstergiou/Downloads/sfpd-integration/src/test/java/be/fgov/sfpd/integration/documents/ImportDocumentFromAPSoftToTheseosWorkflowRouteBuilderTest.java

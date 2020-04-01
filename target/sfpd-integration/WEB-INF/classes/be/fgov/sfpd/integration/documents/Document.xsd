@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- edited by Corona Virus -->
+<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns="urn:document-schema"
+            targetNamespace="urn:document-schema" elementFormDefault="qualified">
+    <xsd:element name="Document" type="documenttype"/>
+    <xsd:complexType name="documenttype">
+        <xsd:sequence>
+            <xsd:element name="FileName" type="reqStringType" nillable="false" minOccurs="1" maxOccurs="1"/>
+            <xsd:element name="Title" type="reqStringType" nillable="false" minOccurs="1" maxOccurs="1"/>
+            <xsd:element name="Author" type="authorType" nillable="false" minOccurs="1" maxOccurs="1"/>
+            <xsd:element name="Language" type="langType" nillable="false" minOccurs="1" maxOccurs="1"/>
+            <xsd:element name="Matter" type="xsd:string" minOccurs="0" maxOccurs="1"/>
+            <xsd:element name="NISS" type="NISSType" minOccurs="1" maxOccurs="1"/>
+            <xsd:element name="DNR" type="DNRType" minOccurs="0" maxOccurs="1"/>
+            <xsd:element name="Remark" type="remarkType" minOccurs="0" maxOccurs="1"/>
+            <xsd:element name="MimeType" type="validMimeType" nillable="false" minOccurs="1" maxOccurs="1"/>
+            <xsd:element name="ImportTask" type="taskType" nillable="false" minOccurs="1" maxOccurs="1"/>
+        </xsd:sequence>
+        <xsd:attribute name="src" type="srcType" use="required"/>
+        <xsd:attribute name="ver" type="xsd:string" use="required" fixed="1.0"/>
+    </xsd:complexType>
+    <xsd:simpleType name="srcType">
+        <xsd:restriction base="xsd:string">
+            <xsd:minLength value="1"/>
+            <xsd:enumeration value="DocNet"/>
+            <xsd:enumeration value="APSoft"/>
+            <xsd:enumeration value="PensionPortal"/>
+        </xsd:restriction>
+    </xsd:simpleType>
+    <xsd:simpleType name="reqStringType">
+        <xsd:restriction base="xsd:string">
+            <xsd:minLength value="1"/>
+        </xsd:restriction>
+    </xsd:simpleType>
+    <xsd:simpleType name="authorType">
+        <xsd:restriction base="xsd:string">
+            <xsd:pattern value="\w{5}"/>
+        </xsd:restriction>
+    </xsd:simpleType>
+    <xsd:simpleType name="langType">
+        <xsd:restriction base="xsd:string">
+            <xsd:minLength value="1"/>
+            <xsd:enumeration value="N"/>
+            <xsd:enumeration value="F"/>
+            <xsd:enumeration value="D"/>
+        </xsd:restriction>
+    </xsd:simpleType>
+    <xsd:simpleType name="NISSType">
+        <xsd:restriction base="xsd:string">
+            <xsd:pattern value="\d{11}"/>
+        </xsd:restriction>
+    </xsd:simpleType>
+    <xsd:simpleType name="DNRType">
+        <xsd:restriction base="xsd:string">
+            <xsd:pattern value="\w{2}-\d{6}-\d{2}"/>
+        </xsd:restriction>
+    </xsd:simpleType>
+    <xsd:simpleType name="remarkType">
+        <xsd:restriction base="xsd:string">
+            <xsd:maxLength value="28"/>
+        </xsd:restriction>
+    </xsd:simpleType>
+    <xsd:simpleType name="validMimeType">
+        <xsd:restriction base="xsd:string">
+            <xsd:enumeration value="application/pdf"/>
+        </xsd:restriction>
+    </xsd:simpleType>
+    <xsd:simpleType name="taskType">
+        <xsd:restriction base="xsd:string">
+            <xsd:minLength value="1"/>
+            <xsd:enumeration value="PUBLIC_RETIREMENT_ESTIMATION"/>
+        </xsd:restriction>
+    </xsd:simpleType>
+</xsd:schema>
+
+
+
+
+

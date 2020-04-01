@@ -1,0 +1,40 @@
+{
+  "request": {
+    "method": "GET",
+    "url": "/api/workflows/2",
+    "headers": {
+      "Authorization": {
+        "equalTo": "Bearer {\"user\":\"_SYS_\"}"
+      }
+    }
+  },
+  "response": {
+    "status": 200,
+    "jsonBody": {
+      "_links": {
+        "self": {
+          "href": "http://localhost:8089/api/workflows/2"
+        }
+      },
+      "_forms": {
+        "uploadDocument": {
+          "_links": {
+            "target": {
+              "href": "http://localhost:8089/api/workflows/2?transition=uploadDocument"
+            }
+          },
+          "properties": [
+            {
+              "name": "document",
+              "type": "file"
+            }
+          ]
+        }
+      },
+      "id": 2
+    },
+    "headers": {
+      "Content-Type": "application/json"
+    }
+  }
+}

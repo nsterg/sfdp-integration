@@ -1,0 +1,3 @@
+be/fgov/sfpd/integration/documents/ImportDocumentFromAPSoftToTheseosWorkflowRouteBuilderTest.class
+be/fgov/sfpd/integration/WireMockExtension.class
+be/fgov/sfpd/integration/CamelExtension.class

@@ -1,0 +1,14 @@
+<component name="ArtifactManager">
+  <artifact type="war" name="sfpd-integration:war">
+    <output-path>$PROJECT_DIR$/target</output-path>
+    <properties id="maven-jee-properties">
+      <options>
+        <module>sfpd-integration</module>
+        <packaging>war</packaging>
+      </options>
+    </properties>
+    <root id="archive" name="sfpd-integration.war">
+      <element id="artifact" artifact-name="sfpd-integration:war exploded" />
+    </root>
+  </artifact>
+</component>
