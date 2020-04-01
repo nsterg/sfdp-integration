@@ -3,6 +3,8 @@
 !.empty
 .project
 .settings
+.settings/
+.idea/
 .classpath
 .DS_Store
 
