@@ -36,7 +36,7 @@ public class ImportDocumentFromAPSoftToTheseosWorkflowRouteBuilder extends Route
 	private static final String UPLOAD_DOC_TARGET_URL = "$._forms.uploadDocument._links.target.href";
 	private static final String THESEOS_WORKFLOW_API_URI = "{{theseos.workflow.api}}?niss=${header.inss}&definition=${header.type}";
 	private static final String XSD_VALIDATION_URI = "validator:be/fgov/sfpd/integration/documents/Document.xsd";
-	private static final String INPUT_URI = "{{camel.documents.input.uri}}?include=\\d{11}D\\d{6}T\\d{8}\\.xml";
+	private static final String INPUT_URI = "{{camel.documents.input.uri}}?include=\\d{11}D\\d{6}T\\d{8}\\.xml&move=.success&moveFailed=.error";
     private static final Map<String, String> TASK_TO_WORKFLOW = Collections.singletonMap("PUBLIC_RETIREMENT_ESTIMATION", "Centestim");
     private static final String AUTHORIZATION = "Bearer {\"user\":\"_SYS_\"}";
 	private static final Namespaces NS = new Namespaces("tns", "urn:document-schema");

@@ -18,7 +18,7 @@ import org.junit.jupiter.api.io.TempDir;
 import be.fgov.sfpd.integration.CamelExtension;
 import be.fgov.sfpd.integration.WireMockExtension;
 
-public class ImportDocumentFromAPSoftToTheseosWorkflowRouteBuilderTest {
+public class ImportDocumentFromAPSoftToTheseosWorkflowRouteBuilderErrorTest {
 
     private static final String[] TEST_FILES = {
             "57030824554D160919T10272372.pdf",
@@ -36,12 +36,12 @@ public class ImportDocumentFromAPSoftToTheseosWorkflowRouteBuilderTest {
 
     @BeforeEach
     public void setProperties(@TempDir Path in) {
-        camel.setProperty("theseos.workflow.api", "http://localhost:8089/api/workflows");
+        camel.setProperty("theseos.workflow.api", "http://localhost:8090/api/workflows");
         camel.setProperty("camel.documents.input.uri", in.toUri().toASCIIString());
     }
 
     @Test
-    public void shouldProcessAndMOveFilesToSuccessFolder(@TempDir Path in) throws IOException {
+    public void shouldMoveFilesToErrorFolderWhenExceptionThrown(@TempDir Path in) throws IOException {
 
         // copy test files in the directory polled by camel
         for (final String fileName : TEST_FILES) {
@@ -50,17 +50,12 @@ public class ImportDocumentFromAPSoftToTheseosWorkflowRouteBuilderTest {
             }
         }
 
-        final Path camel = in.resolve(".camel");
-        final Path success = in.resolve(".success");
         final Path error = in.resolve(".error");
 
-        // wait up to 3 seconds until all files have been processed (moved by camel)
+        // wait up to 3 seconds until processed file has been moved to error folder by camel
         await()
                 .atMost(3, SECONDS)
-                .until(() -> Stream.of(TEST_FILES).allMatch(f -> (Files.exists(camel.resolve(f)) ||
-                		                                          Files.exists(success.resolve(f))) &&
-                												  !Files.exists(in.resolve(f)) &&
-                												  !Files.exists(error.resolve(f))));
-    }
+                .until(() -> Stream.of(TEST_FILES).anyMatch(f -> Files.exists(error.resolve(f))));
+       }
 
 }
