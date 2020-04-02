@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.UncheckedIOException;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
 
 import org.apache.camel.Exchange;
@@ -99,7 +100,13 @@ public class ImportDocumentFromAPSoftToTheseosWorkflowRouteBuilder extends Route
 			final String task = (String) NS.xpath("/tns:Document/tns:ImportTask", String.class).evaluate(exchange);
 			final String mime = (String) NS.xpath("/tns:Document/tns:MimeType", String.class).evaluate(exchange);
 
-			exchange.getIn().setHeaders(Map.of("inss", inss, "file", file, "task", task, "mime", mime));
+			final Map<String, Object> headers = new HashMap<>();
+			headers.put("inss", inss);
+			headers.put("file", file);
+			headers.put("task", task);
+			headers.put("mime", mime);
+
+			exchange.getIn().setHeaders(headers);
 		};
 	}
 
