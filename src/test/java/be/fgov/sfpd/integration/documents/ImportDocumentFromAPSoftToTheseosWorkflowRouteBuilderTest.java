@@ -25,6 +25,11 @@ public class ImportDocumentFromAPSoftToTheseosWorkflowRouteBuilderTest {
             "57030824554D160919T10272372.xml"
     };
 
+    private static final String[] INVALID_TEST_FILES = {
+            "57030824554D160919T10272373.pdf",
+            "57030824554D160919T10272373.xml"
+    };
+
     @RegisterExtension
     public final WireMockExtension wireMock = new WireMockExtension(options()
             .port(8089)
@@ -41,9 +46,8 @@ public class ImportDocumentFromAPSoftToTheseosWorkflowRouteBuilderTest {
     }
 
     @Test
-    public void shouldProcessAndMOveFilesToSuccessFolder(@TempDir Path in) throws IOException {
+    public void shouldProcessAndMoveFilesToSuccessFolder(@TempDir Path in) throws IOException {
 
-        // copy test files in the directory polled by camel
         for (final String fileName : TEST_FILES) {
             try (InputStream is = getClass().getResourceAsStream(fileName)) {
                 Files.copy(is, in.resolve(fileName));
@@ -54,7 +58,6 @@ public class ImportDocumentFromAPSoftToTheseosWorkflowRouteBuilderTest {
         final Path success = in.resolve(".success");
         final Path error = in.resolve(".error");
 
-        // wait up to 3 seconds until all files have been processed (moved by camel)
         await()
                 .atMost(3, SECONDS)
                 .until(() -> Stream.of(TEST_FILES).allMatch(f -> (Files.exists(camel.resolve(f)) ||
@@ -62,5 +65,19 @@ public class ImportDocumentFromAPSoftToTheseosWorkflowRouteBuilderTest {
                 												  !Files.exists(in.resolve(f)) &&
                 												  !Files.exists(error.resolve(f))));
     }
+
+	@Test
+	public void shouldMoveFilesToErrorFolderWhenXMLValidationThrows(@TempDir Path in) throws IOException {
+
+		for (final String fileName : INVALID_TEST_FILES) {
+			try (InputStream is = getClass().getResourceAsStream(fileName)) {
+				Files.copy(is, in.resolve(fileName));
+			}
+		}
+
+		final Path error = in.resolve(".error");
+
+		await().atMost(3, SECONDS).until(() -> Stream.of(INVALID_TEST_FILES).anyMatch(f -> Files.exists(error.resolve(f))));
+	}
 
 }

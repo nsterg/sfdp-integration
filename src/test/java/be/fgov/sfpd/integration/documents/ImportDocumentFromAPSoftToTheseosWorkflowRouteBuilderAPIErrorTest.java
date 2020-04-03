@@ -18,7 +18,7 @@ import org.junit.jupiter.api.io.TempDir;
 import be.fgov.sfpd.integration.CamelExtension;
 import be.fgov.sfpd.integration.WireMockExtension;
 
-public class ImportDocumentFromAPSoftToTheseosWorkflowRouteBuilderErrorTest {
+public class ImportDocumentFromAPSoftToTheseosWorkflowRouteBuilderAPIErrorTest {
 
     private static final String[] TEST_FILES = {
             "57030824554D160919T10272372.pdf",
@@ -40,22 +40,21 @@ public class ImportDocumentFromAPSoftToTheseosWorkflowRouteBuilderErrorTest {
         camel.setProperty("camel.documents.input.uri", in.toUri().toASCIIString());
     }
 
-    @Test
-    public void shouldMoveFilesToErrorFolderWhenExceptionThrown(@TempDir Path in) throws IOException {
+	@Test
+	public void shouldMoveFilesToErrorFolderWhenCantConnectToTheseosAPI(@TempDir Path in) throws IOException {
 
-        // copy test files in the directory polled by camel
-        for (final String fileName : TEST_FILES) {
-            try (InputStream is = getClass().getResourceAsStream(fileName)) {
-                Files.copy(is, in.resolve(fileName));
-            }
-        }
+		// copy test files in the directory polled by camel
+		for (final String fileName : TEST_FILES) {
+			try (InputStream is = getClass().getResourceAsStream(fileName)) {
+				Files.copy(is, in.resolve(fileName));
+			}
+		}
 
-        final Path error = in.resolve(".error");
+		final Path error = in.resolve(".error");
 
-        // wait up to 3 seconds until processed file has been moved to error folder by camel
-        await()
-                .atMost(3, SECONDS)
-                .until(() -> Stream.of(TEST_FILES).anyMatch(f -> Files.exists(error.resolve(f))));
-       }
+		// wait up to 3 seconds until processed file has been moved to error folder by
+		// camel
+		await().atMost(3, SECONDS).until(() -> Stream.of(TEST_FILES).anyMatch(f -> Files.exists(error.resolve(f))));
+	}
 
 }

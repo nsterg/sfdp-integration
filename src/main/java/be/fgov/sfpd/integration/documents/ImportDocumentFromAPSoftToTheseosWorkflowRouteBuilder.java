@@ -5,6 +5,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UncheckedIOException;
+import java.net.ConnectException;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -17,6 +18,7 @@ import org.apache.camel.builder.xml.Namespaces;
 import org.apache.http.HttpEntity;
 import org.apache.http.entity.ContentType;
 import org.apache.http.entity.mime.MultipartEntityBuilder;
+import org.xml.sax.SAXParseException;
 
 /**
  * TODO keep track of processed files (in DB?)
@@ -43,12 +45,19 @@ public class ImportDocumentFromAPSoftToTheseosWorkflowRouteBuilder extends Route
 
     @Override
     public void configure() {
+
+    	onException(SAXParseException.class)
+        	.log("Failed to validate input XML file ");
+    	onException(ConnectException.class)
+    		.log("Failed to connect to Theseos workfile API");
+    	onException(Exception.class)
+        	.log("Some error occurred while processing file");
+
         from(INPUT_URI)
 	        .to(XSD_VALIDATION_URI)
 	        .process(extractXMLValues())
 	        .process(mapImportTaskToWorkflowType())
 	        .setHeader("Authorization", simple(AUTHORIZATION))
-
 	        .process(prepareForHttpGetRequest())
 	        .toD(THESEOS_WORKFLOW_API_URI)
 	        .to(WORKFLOWS_FROM_THESEOS_DIRECT_URI);
