@@ -7,10 +7,10 @@ import java.io.InputStream;
 import java.io.UncheckedIOException;
 import java.net.ConnectException;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.Map;
 
 import org.apache.camel.Exchange;
+import org.apache.camel.Message;
 import org.apache.camel.Predicate;
 import org.apache.camel.Processor;
 import org.apache.camel.builder.RouteBuilder;
@@ -47,11 +47,11 @@ public class ImportDocumentFromAPSoftToTheseosWorkflowRouteBuilder extends Route
     public void configure() {
 
     	onException(SAXParseException.class)
-        	.log("Failed to validate input XML file ");
+        	.log("Failed to validate input XML file ${header.CamelFileName}" );
     	onException(ConnectException.class)
-    		.log("Failed to connect to Theseos workfile API");
+    		.log("Failed to connect to Theseos workfile API while processing file ${header.CamelFileName}");
     	onException(Exception.class)
-        	.log("Some error occurred while processing file");
+        	.log("Some error occurred while processing file ${header.CamelFileName}");
 
         from(INPUT_URI)
 	        .to(XSD_VALIDATION_URI)
@@ -109,13 +109,12 @@ public class ImportDocumentFromAPSoftToTheseosWorkflowRouteBuilder extends Route
 			final String task = (String) NS.xpath("/tns:Document/tns:ImportTask", String.class).evaluate(exchange);
 			final String mime = (String) NS.xpath("/tns:Document/tns:MimeType", String.class).evaluate(exchange);
 
-			final Map<String, Object> headers = new HashMap<>();
-			headers.put("inss", inss);
-			headers.put("file", file);
-			headers.put("task", task);
-			headers.put("mime", mime);
+			final Message in = exchange.getIn();
 
-			exchange.getIn().setHeaders(headers);
+			in.setHeader("inss", inss);
+			in.setHeader("file", file);
+			in.setHeader("task", task);
+			in.setHeader("mime", mime);
 		};
 	}
 
