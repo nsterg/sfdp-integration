@@ -25,9 +25,14 @@ public class ImportDocumentFromAPSoftToTheseosWorkflowRouteBuilderTest {
             "57030824554D160919T10272372.xml"
     };
 
-    private static final String[] INVALID_TEST_FILES = {
+    private static final String[] INVALID_XML_TEST_FILES = {
             "57030824554D160919T10272373.pdf",
             "57030824554D160919T10272373.xml"
+    };
+
+    private static final String[] INVALID_FILENAME_TEST_FILES = {
+            "57030824554D160919T10272373.pdf",
+            "INVALID_FILENAME.xml"
     };
 
     @RegisterExtension
@@ -67,9 +72,9 @@ public class ImportDocumentFromAPSoftToTheseosWorkflowRouteBuilderTest {
     }
 
 	@Test
-	public void shouldMoveFilesToErrorFolderWhenXMLValidationThrows(@TempDir Path in) throws IOException {
+	public void shouldMoveFilesToErrorFolderWhenXMLValidationThrown(@TempDir Path in) throws IOException {
 
-		for (final String fileName : INVALID_TEST_FILES) {
+		for (final String fileName : INVALID_XML_TEST_FILES) {
 			try (InputStream is = getClass().getResourceAsStream(fileName)) {
 				Files.copy(is, in.resolve(fileName));
 			}
@@ -77,7 +82,22 @@ public class ImportDocumentFromAPSoftToTheseosWorkflowRouteBuilderTest {
 
 		final Path error = in.resolve(".error");
 
-		await().atMost(3, SECONDS).until(() -> Stream.of(INVALID_TEST_FILES).anyMatch(f -> Files.exists(error.resolve(f))));
+		await().atMost(10, SECONDS).until(() -> Stream.of(INVALID_XML_TEST_FILES).anyMatch(f -> Files.exists(error.resolve(f))));
+	}
+
+
+	@Test
+	public void shouldMoveFilesToErrorFolderWhenFilenameIsInvalid(@TempDir Path in) throws IOException {
+
+		for (final String fileName : INVALID_FILENAME_TEST_FILES) {
+			try (InputStream is = getClass().getResourceAsStream(fileName)) {
+				Files.copy(is, in.resolve(fileName));
+			}
+		}
+
+		final Path error = in.resolve(".error");
+
+		await().atMost(10, SECONDS).until(() -> Stream.of(INVALID_FILENAME_TEST_FILES).anyMatch(f -> Files.exists(error.resolve(f))));
 	}
 
 }
