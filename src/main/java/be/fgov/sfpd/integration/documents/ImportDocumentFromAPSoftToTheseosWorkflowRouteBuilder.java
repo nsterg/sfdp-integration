@@ -21,15 +21,11 @@ import org.apache.http.entity.mime.MultipartEntityBuilder;
 import org.xml.sax.SAXParseException;
 
 /**
- * TODO keep track of processed files (in DB?)
- * TODO check where files need to go after being processed
  * TODO workflow search may not be complete
- * TODO add error handling
- * TODO split into smaller routes
  */
 public class ImportDocumentFromAPSoftToTheseosWorkflowRouteBuilder extends RouteBuilder {
 
-    private static final String VALID_FILENAME_REGEX = "\\d{11}D\\d{6}T\\d{8}\\.xml";
+	private static final String VALID_FILENAME_REGEX = "\\d{11}D\\d{6}T\\d{8}\\.xml";
 	private static final String WORKFLOW_DETAILS_DIRECT_URI = "direct:getWorkflow";
 	private static final String WORKFLOWS_FROM_THESEOS_DIRECT_URI = "direct:workflowResults";
 	private static final String WORKFLOW_HREF_URI = "${header.workflow}";
@@ -37,59 +33,59 @@ public class ImportDocumentFromAPSoftToTheseosWorkflowRouteBuilder extends Route
 	private static final String CAMEL_DOCUMENTS_INPUT_URI = "{{camel.documents.input.uri}}?fileName=${header.file}";
 	private static final String HEADER_UPLOAD_URI = "${header.upload}&throwExceptionOnFailure=false";
 	private static final String UPLOAD_DOC_TARGET_URL = "$._forms.uploadDocument._links.target.href";
-	private static final String THESEOS_WORKFLOW_API_URI = "{{theseos.workflow.api}}?niss=${header.inss}&definition=${header.type}";
+	private static final String THESEOS_WORKFLOW_API_URI = "{{theseos.workflow.api.url}}?niss=${header.inss}&definition=${header.type}";
 	private static final String XSD_VALIDATION_URI = "validator:be/fgov/sfpd/integration/documents/Document.xsd";
 	private static final String INPUT_URI = "{{camel.documents.input.uri}}?include=.*\\.xml&move=.success&moveFailed=.error";
-    private static final Map<String, String> TASK_TO_WORKFLOW = Collections.singletonMap("PUBLIC_RETIREMENT_ESTIMATION", "Centestim");
-    private static final String AUTHORIZATION = "Bearer {\"user\":\"_SYS_\"}";
+	private static final Map<String, String> TASK_TO_WORKFLOW = Collections.singletonMap("PUBLIC_RETIREMENT_ESTIMATION", "Centestim");
+	private static final String AUTHORIZATION = "{{theseos.workflow.api.authorization}}";
 	private static final Namespaces NS = new Namespaces("tns", "urn:document-schema");
 
-    @Override
-    public void configure() {
+	@Override
+	public void configure() {
 
-    	onException(SAXParseException.class)
-        	.log("Failed to validate input XML file ${header.CamelFileName}");
-    	onException(ConnectException.class)
-    		.log("Failed to connect to Theseos workfile API while processing file ${header.CamelFileName}");
-    	onException(Exception.class)
-        	.log("Some error occurred while processing file ${header.CamelFileName}");
+		onException(SAXParseException.class)
+				.log("Failed to validate input XML file ${header.CamelFileName}");
+		onException(ConnectException.class)
+				.log("Failed to connect to Theseos workflow API while processing file ${header.CamelFileName}");
+		onException(Exception.class)
+				.log("Some error occurred while processing file ${header.CamelFileName}");
 
-        from(INPUT_URI)
-            .process(validateFilename())
-	        .to(XSD_VALIDATION_URI)
-	        .process(extractXMLValues())
-	        .process(mapImportTaskToWorkflowType())
-	        .setHeader("Authorization", simple(AUTHORIZATION))
-	        .process(prepareForHttpGetRequest())
-	        .toD(THESEOS_WORKFLOW_API_URI)
-	        .to(WORKFLOWS_FROM_THESEOS_DIRECT_URI);
+		from(INPUT_URI)
+				.process(validateFilename())
+				.to(XSD_VALIDATION_URI)
+				.process(extractXMLValues())
+				.process(mapImportTaskToWorkflowType())
+				.setHeader("Authorization", simple(AUTHORIZATION))
+				.process(prepareForHttpGetRequest())
+				.toD(THESEOS_WORKFLOW_API_URI)
+				.to(WORKFLOWS_FROM_THESEOS_DIRECT_URI);
 
-        from(WORKFLOWS_FROM_THESEOS_DIRECT_URI)
-	        .choice()
-	            .when(hasEmbeddedWorkflows())
-	                // extract first workflow url into header
-	                .setHeader("workflow").jsonpath(EMBEDDED_WORKFLOWS_LINKS_PATH)
-	                .log("found workflow ${header.workflow}")
-	            .otherwise()
-	                .throwException(RuntimeException.class, "No workflow")
-	        .end()
-	        .toD(WORKFLOW_HREF_URI)
-	        .to(WORKFLOW_DETAILS_DIRECT_URI);
+		from(WORKFLOWS_FROM_THESEOS_DIRECT_URI)
+				.choice()
+				.when(hasEmbeddedWorkflows())
+				// extract first workflow url into header
+				.setHeader("workflow").jsonpath(EMBEDDED_WORKFLOWS_LINKS_PATH)
+				.log("found workflow ${header.workflow}")
+				.otherwise()
+				.throwException(RuntimeException.class, "No workflow")
+				.end()
+				.toD(WORKFLOW_HREF_URI)
+				.to(WORKFLOW_DETAILS_DIRECT_URI);
 
-        from(WORKFLOW_DETAILS_DIRECT_URI)
-	        .setHeader("upload").jsonpath(UPLOAD_DOC_TARGET_URL)
-	        .choice()
-	            .when(cantUpload())
-	                .throwException(RuntimeException.class, "No uploadDocument transition")
-	            .otherwise()
-	                .log("upload document to ${header.upload}")
-	                .pollEnrich().simple(CAMEL_DOCUMENTS_INPUT_URI)
-	                .aggregationStrategy(this::aggregate)
-	    	        .process(prepareForHttpPostRequest())
-	                .toD(HEADER_UPLOAD_URI)
-	                .validate(isResponse302())
-			.end();
-    }
+		from(WORKFLOW_DETAILS_DIRECT_URI)
+				.setHeader("upload").jsonpath(UPLOAD_DOC_TARGET_URL)
+				.choice()
+				.when(cantUpload())
+				.throwException(RuntimeException.class, "No uploadDocument transition")
+				.otherwise()
+				.log("upload document to ${header.upload}")
+				.pollEnrich().simple(CAMEL_DOCUMENTS_INPUT_URI)
+				.aggregationStrategy(this::aggregate)
+				.process(prepareForHttpPostRequest())
+				.toD(HEADER_UPLOAD_URI)
+				.validate(isResponse302())
+				.end();
+	}
 
 	private Processor validateFilename() {
 		return (exchange) -> {
@@ -152,26 +148,26 @@ public class ImportDocumentFromAPSoftToTheseosWorkflowRouteBuilder extends Route
 	}
 
 	private Exchange aggregate(Exchange voucher, Exchange payload) {
-        final ContentType contentType = ContentType.create(voucher.getIn().getHeader("mime", String.class));
-        final HttpEntity resultEntity = MultipartEntityBuilder
-            .create()
-            .addTextBody("comment", "TODO")
-            .addTextBody("uploadType", "NewDoc")
-            .addBinaryBody("uploadedDocument", payload.getIn().getBody(InputStream.class), contentType, voucher.getIn().getHeader("file", String.class))
-            .build();
+		final ContentType contentType = ContentType.create(voucher.getIn().getHeader("mime", String.class));
+		final HttpEntity resultEntity = MultipartEntityBuilder
+				.create()
+				.addTextBody("comment", "TODO")
+				.addTextBody("uploadType", "NewDoc")
+				.addBinaryBody("uploadedDocument", payload.getIn().getBody(InputStream.class), contentType, voucher.getIn().getHeader("file", String.class))
+				.build();
 
-        payload.getIn().setHeaders(voucher.getIn().getHeaders());
-        payload.getIn().setHeader(Exchange.CONTENT_TYPE, resultEntity.getContentType().getValue());
-        // payload.getIn().setBody(resultEntity); // TODO find a way to make it work
-        // <workaround>
-        try {
-            final ByteArrayOutputStream baos = new ByteArrayOutputStream();
-            resultEntity.writeTo(baos);
-            payload.getIn().setBody(new ByteArrayInputStream(baos.toByteArray()));
-        } catch (final IOException ioException) {
-            throw new UncheckedIOException(ioException);
-        }
-        // </workaround>
-        return payload;
-    }
+		payload.getIn().setHeaders(voucher.getIn().getHeaders());
+		payload.getIn().setHeader(Exchange.CONTENT_TYPE, resultEntity.getContentType().getValue());
+		// payload.getIn().setBody(resultEntity); // TODO find a way to make it work
+		// <workaround>
+		try {
+			final ByteArrayOutputStream baos = new ByteArrayOutputStream();
+			resultEntity.writeTo(baos);
+			payload.getIn().setBody(new ByteArrayInputStream(baos.toByteArray()));
+		} catch (final IOException ioException) {
+			throw new UncheckedIOException(ioException);
+		}
+		// </workaround>
+		return payload;
+	}
 }

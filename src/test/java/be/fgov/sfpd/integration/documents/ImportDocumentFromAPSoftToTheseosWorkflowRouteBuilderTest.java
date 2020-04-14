@@ -46,7 +46,8 @@ public class ImportDocumentFromAPSoftToTheseosWorkflowRouteBuilderTest {
 
     @BeforeEach
     public void setProperties(@TempDir Path in) {
-        camel.setProperty("theseos.workflow.api", "http://localhost:8089/api/workflows");
+        camel.setProperty("theseos.workflow.api.url", "http://localhost:8090/api/workflows");
+        camel.setProperty("theseos.workflow.api.authorization", "Bearer {\"user\":\"_SYS_\"}");
         camel.setProperty("camel.documents.input.uri", in.toUri().toASCIIString());
     }
 
@@ -64,40 +65,40 @@ public class ImportDocumentFromAPSoftToTheseosWorkflowRouteBuilderTest {
         final Path error = in.resolve(".error");
 
         await()
-                .atMost(3, SECONDS)
+                .atMost(10, SECONDS)
                 .until(() -> Stream.of(TEST_FILES).allMatch(f -> (Files.exists(camel.resolve(f)) ||
-                		                                          Files.exists(success.resolve(f))) &&
-                												  !Files.exists(in.resolve(f)) &&
-                												  !Files.exists(error.resolve(f))));
+                        Files.exists(success.resolve(f))) &&
+                        !Files.exists(in.resolve(f)) &&
+                        !Files.exists(error.resolve(f))));
     }
 
-	@Test
-	public void shouldMoveFilesToErrorFolderWhenXMLValidationThrown(@TempDir Path in) throws IOException {
+    @Test
+    public void shouldMoveFilesToErrorFolderWhenXMLValidationThrown(@TempDir Path in) throws IOException {
 
-		for (final String fileName : INVALID_XML_TEST_FILES) {
-			try (InputStream is = getClass().getResourceAsStream(fileName)) {
-				Files.copy(is, in.resolve(fileName));
-			}
-		}
+        for (final String fileName : INVALID_XML_TEST_FILES) {
+            try (InputStream is = getClass().getResourceAsStream(fileName)) {
+                Files.copy(is, in.resolve(fileName));
+            }
+        }
 
-		final Path error = in.resolve(".error");
+        final Path error = in.resolve(".error");
 
-		await().atMost(10, SECONDS).until(() -> Stream.of(INVALID_XML_TEST_FILES).anyMatch(f -> Files.exists(error.resolve(f))));
-	}
+        await().atMost(10, SECONDS).until(() -> Stream.of(INVALID_XML_TEST_FILES).anyMatch(f -> Files.exists(error.resolve(f))));
+    }
 
 
-	@Test
-	public void shouldMoveFilesToErrorFolderWhenFilenameIsInvalid(@TempDir Path in) throws IOException {
+    @Test
+    public void shouldMoveFilesToErrorFolderWhenFilenameIsInvalid(@TempDir Path in) throws IOException {
 
-		for (final String fileName : INVALID_FILENAME_TEST_FILES) {
-			try (InputStream is = getClass().getResourceAsStream(fileName)) {
-				Files.copy(is, in.resolve(fileName));
-			}
-		}
+        for (final String fileName : INVALID_FILENAME_TEST_FILES) {
+            try (InputStream is = getClass().getResourceAsStream(fileName)) {
+                Files.copy(is, in.resolve(fileName));
+            }
+        }
 
-		final Path error = in.resolve(".error");
+        final Path error = in.resolve(".error");
 
-		await().atMost(10, SECONDS).until(() -> Stream.of(INVALID_FILENAME_TEST_FILES).anyMatch(f -> Files.exists(error.resolve(f))));
-	}
+        await().atMost(10, SECONDS).until(() -> Stream.of(INVALID_FILENAME_TEST_FILES).anyMatch(f -> Files.exists(error.resolve(f))));
+    }
 
 }
