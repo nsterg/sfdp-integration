@@ -46,7 +46,7 @@ public class ImportDocumentFromAPSoftToTheseosWorkflowRouteBuilderTest {
 
     @BeforeEach
     public void setProperties(@TempDir Path in) {
-        camel.setProperty("theseos.workflow.api.url", "http://localhost:8090/api/workflows");
+        camel.setProperty("theseos.workflow.api.url", "http://localhost:8089/api/workflows");
         camel.setProperty("theseos.workflow.api.authorization", "Bearer {\"user\":\"_SYS_\"}");
         camel.setProperty("camel.documents.input.uri", in.toUri().toASCIIString());
     }

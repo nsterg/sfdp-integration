@@ -25,6 +25,7 @@ import org.xml.sax.SAXParseException;
  */
 public class ImportDocumentFromAPSoftToTheseosWorkflowRouteBuilder extends RouteBuilder {
 
+	private static final String HAS_EMBEDDED_WORKFLOWS_EXPR = "$._embedded.workflows[?(@.length() > 0)]";
 	private static final String VALID_FILENAME_REGEX = "\\d{11}D\\d{6}T\\d{8}\\.xml";
 	private static final String WORKFLOW_DETAILS_DIRECT_URI = "direct:getWorkflow";
 	private static final String WORKFLOWS_FROM_THESEOS_DIRECT_URI = "direct:workflowResults";
@@ -61,8 +62,9 @@ public class ImportDocumentFromAPSoftToTheseosWorkflowRouteBuilder extends Route
 				.to(WORKFLOWS_FROM_THESEOS_DIRECT_URI);
 
 		from(WORKFLOWS_FROM_THESEOS_DIRECT_URI)
+				.convertBodyTo(String.class)
 				.choice()
-				.when(hasEmbeddedWorkflows())
+				.when().jsonpath(HAS_EMBEDDED_WORKFLOWS_EXPR)
 				// extract first workflow url into header
 				.setHeader("workflow").jsonpath(EMBEDDED_WORKFLOWS_LINKS_PATH)
 				.log("found workflow ${header.workflow}")
@@ -98,17 +100,12 @@ public class ImportDocumentFromAPSoftToTheseosWorkflowRouteBuilder extends Route
 		};
 	}
 
-
 	private Predicate isResponse302() {
 		return header(Exchange.HTTP_RESPONSE_CODE).isEqualTo(302);
 	}
 
 	private Predicate cantUpload() {
 		return header("upload").isNull();
-	}
-
-	private Predicate hasEmbeddedWorkflows() {
-		return body().matches().jsonpath("$._embedded.workflows[?(@.length() > 0)]");
 	}
 
 	private Processor extractXMLValues() {
