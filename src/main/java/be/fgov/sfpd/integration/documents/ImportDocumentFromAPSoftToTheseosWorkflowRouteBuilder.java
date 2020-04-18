@@ -31,7 +31,7 @@ public class ImportDocumentFromAPSoftToTheseosWorkflowRouteBuilder extends Route
 	private static final String WORKFLOWS_FROM_THESEOS_DIRECT_URI = "direct:workflowResults";
 	private static final String WORKFLOW_HREF_URI = "${header.workflow}";
 	private static final String EMBEDDED_WORKFLOWS_LINKS_PATH = "$._embedded.workflows[0]._links.self.href";
-	private static final String CAMEL_DOCUMENTS_INPUT_URI = "{{camel.documents.input.uri}}?fileName=${header.file}";
+	private static final String CAMEL_DOCUMENTS_INPUT_URI = "{{camel.documents.input.uri}}?fileName=${header.file}&move=.success&moveFailed=.error";
 	private static final String HEADER_UPLOAD_URI = "${header.upload}&throwExceptionOnFailure=false";
 	private static final String UPLOAD_DOC_TARGET_URL = "$._forms.uploadDocument._links.target.href";
 	private static final String THESEOS_WORKFLOW_API_URI = "{{theseos.workflow.api.url}}?niss=${header.inss}&definition=${header.type}";

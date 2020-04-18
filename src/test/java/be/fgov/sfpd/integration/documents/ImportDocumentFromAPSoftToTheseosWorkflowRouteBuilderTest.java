@@ -60,14 +60,12 @@ public class ImportDocumentFromAPSoftToTheseosWorkflowRouteBuilderTest {
             }
         }
 
-        final Path camel = in.resolve(".camel");
         final Path success = in.resolve(".success");
         final Path error = in.resolve(".error");
 
         await()
                 .atMost(10, SECONDS)
-                .until(() -> Stream.of(TEST_FILES).allMatch(f -> (Files.exists(camel.resolve(f)) ||
-                        Files.exists(success.resolve(f))) &&
+                .until(() -> Stream.of(TEST_FILES).allMatch(f -> Files.exists(success.resolve(f)) &&
                         !Files.exists(in.resolve(f)) &&
                         !Files.exists(error.resolve(f))));
     }
