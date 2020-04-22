@@ -52,6 +52,7 @@ public class ImportDocumentFromAPSoftToTheseosWorkflowRouteBuilder extends Route
 				.log("Some error occurred while processing file ${header.CamelFileName}");
 
 		from(INPUT_URI)
+				.log("Processing file ${header.CamelFileName}")
 				.process(validateFilename())
 				.to(XSD_VALIDATION_URI)
 				.process(extractXMLValues())
