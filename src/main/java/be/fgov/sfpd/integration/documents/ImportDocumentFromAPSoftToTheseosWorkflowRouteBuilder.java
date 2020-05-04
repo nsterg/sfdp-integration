@@ -2,6 +2,7 @@ package be.fgov.sfpd.integration.documents;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UncheckedIOException;
@@ -15,6 +16,8 @@ import org.apache.camel.Predicate;
 import org.apache.camel.Processor;
 import org.apache.camel.builder.RouteBuilder;
 import org.apache.camel.builder.xml.Namespaces;
+import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.FilenameUtils;
 import org.apache.http.HttpEntity;
 import org.apache.http.entity.ContentType;
 import org.apache.http.entity.mime.MultipartEntityBuilder;
@@ -45,11 +48,14 @@ public class ImportDocumentFromAPSoftToTheseosWorkflowRouteBuilder extends Route
 	public void configure() {
 
 		onException(SAXParseException.class)
-				.log("Failed to validate input XML file ${header.CamelFileName}");
+				.log("Failed to validate input XML file ${header.CamelFileName}")
+				.process(movePdfToErrorFolder());
 		onException(ConnectException.class)
-				.log("Failed to connect to Theseos workflow API while processing file ${header.CamelFileName}");
+				.log("Failed to connect to Theseos workflow API while processing file ${header.CamelFileName}")
+				.process(movePdfToErrorFolder());
 		onException(Exception.class)
-				.log("Some error occurred while processing file ${header.CamelFileName}");
+				.log("Some error occurred while processing file ${header.CamelFileName}")
+				.process(movePdfToErrorFolder());
 
 		from(INPUT_URI)
 				.log("Processing file ${header.CamelFileName}")
@@ -167,5 +173,23 @@ public class ImportDocumentFromAPSoftToTheseosWorkflowRouteBuilder extends Route
 		}
 		// </workaround>
 		return payload;
+	}
+
+	private Processor movePdfToErrorFolder() {
+		return (exchange) -> {
+			String parent = (String) exchange.getIn().getHeader(Exchange.FILE_PARENT);
+            File parentDir = new File(parent);
+
+            String filename = (String) exchange.getIn().getHeader(Exchange.FILE_NAME_ONLY);
+            String baseName = FilenameUtils.getBaseName(filename);
+
+            File source = new File(parentDir, baseName + ".pdf");
+            if (source.exists()) {
+                File dest = new File(FilenameUtils.concat(parent, ".error"), source.getName());
+				if (!dest.exists()) {
+					FileUtils.moveFile(source, dest);
+				}
+            }
+		};
 	}
 }

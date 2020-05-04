@@ -81,7 +81,7 @@ public class ImportDocumentFromAPSoftToTheseosWorkflowRouteBuilderTest {
 
         final Path error = in.resolve(".error");
 
-        await().atMost(10, SECONDS).until(() -> Stream.of(INVALID_XML_TEST_FILES).anyMatch(f -> Files.exists(error.resolve(f))));
+        await().atMost(10, SECONDS).until(() -> Stream.of(INVALID_XML_TEST_FILES).allMatch(f -> Files.exists(error.resolve(f))));
     }
 
 

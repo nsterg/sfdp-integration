@@ -54,7 +54,7 @@ public class ImportDocumentFromAPSoftToTheseosWorkflowRouteBuilderAPIErrorTest {
 
         // wait up to 10 seconds until processed file has been moved to error folder by
         // camel
-        await().atMost(10, SECONDS).until(() -> Stream.of(TEST_FILES).anyMatch(f -> Files.exists(error.resolve(f))));
+        await().atMost(10, SECONDS).until(() -> Stream.of(TEST_FILES).allMatch(f -> Files.exists(error.resolve(f))));
     }
 
 }
