@@ -16,6 +16,7 @@ import org.apache.camel.Predicate;
 import org.apache.camel.Processor;
 import org.apache.camel.builder.RouteBuilder;
 import org.apache.camel.builder.xml.Namespaces;
+import org.apache.camel.processor.validation.PredicateValidationException;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.http.HttpEntity;
@@ -53,6 +54,8 @@ public class ImportDocumentFromAPSoftToTheseosWorkflowRouteBuilder extends Route
 		onException(ConnectException.class)
 				.log("Failed to connect to Theseos workflow API while processing file ${header.CamelFileName}")
 				.process(movePdfToErrorFolder());
+		onException(PredicateValidationException.class)
+				.log("Some error occurred while uploading pdf file. Original xml was: ${header.CamelFileName}");
 		onException(Exception.class)
 				.log("Some error occurred while processing file ${header.CamelFileName}")
 				.process(movePdfToErrorFolder());
@@ -93,6 +96,7 @@ public class ImportDocumentFromAPSoftToTheseosWorkflowRouteBuilder extends Route
 				.process(prepareForHttpPostRequest())
 				.toD(HEADER_UPLOAD_URI)
 				.validate(isResponse302())
+				.end()
 				.end();
 	}
 
@@ -184,12 +188,12 @@ public class ImportDocumentFromAPSoftToTheseosWorkflowRouteBuilder extends Route
             String baseName = FilenameUtils.getBaseName(filename);
 
             File source = new File(parentDir, baseName + ".pdf");
-            if (source.exists()) {
-                File dest = new File(FilenameUtils.concat(parent, ".error"), source.getName());
-				if (!dest.exists()) {
-					FileUtils.moveFile(source, dest);
-				}
-            }
+    		File dest = new File(FilenameUtils.concat(parent, ".error"), source.getName());
+    		if (source.exists()) {
+    			if (!dest.exists()) {
+    				FileUtils.moveFile(source, dest);
+    			}
+    		}
 		};
 	}
 }

@@ -101,4 +101,20 @@ public class ImportDocumentFromAPSoftToTheseosWorkflowRouteBuilderTest {
         await().atMost(10, SECONDS).until(() -> Stream.of(INVALID_FILENAME_TEST_FILES).anyMatch(f -> Files.exists(error.resolve(f))));
     }
 
+    @Test
+    public void shouldMoveFilesToErrorFolderWhenWorkflowUploadFails(@TempDir Path in) throws IOException {
+
+        wireMock.stubPostWithError("/api/workflows/2?transition=uploadDocument");
+
+        for (final String fileName : TEST_FILES) {
+            try (InputStream is = getClass().getResourceAsStream(fileName)) {
+                Files.copy(is, in.resolve(fileName));
+            }
+        }
+
+        final Path error = in.resolve(".error");
+
+        await().atMost(10, SECONDS).until(() -> Stream.of(TEST_FILES).allMatch(f -> Files.exists(error.resolve(f))));
+    }
+
 }

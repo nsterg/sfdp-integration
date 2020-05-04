@@ -40,6 +40,12 @@ public class WireMockExtension implements InvocationInterceptor, ParameterResolv
         return server;
     }
 
+    public void stubPostWithError(String url) {
+    	server.stubFor(WireMock.post(WireMock.urlEqualTo(url))
+	            .willReturn(WireMock.aResponse()
+	                .withStatus(500)));
+    }
+
     public void verifyPost(String url) {
     	server.verify(postRequestedFor(WireMock.urlEqualTo(url)));
     }
