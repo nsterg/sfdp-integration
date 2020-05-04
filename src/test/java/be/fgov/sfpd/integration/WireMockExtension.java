@@ -1,9 +1,11 @@
 package be.fgov.sfpd.integration;
 
 import com.github.tomakehurst.wiremock.WireMockServer;
+import com.github.tomakehurst.wiremock.client.WireMock;
 import com.github.tomakehurst.wiremock.core.Options;
 import org.junit.jupiter.api.extension.*;
 
+import static com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor;
 import java.lang.reflect.Method;
 
 public class WireMockExtension implements InvocationInterceptor, ParameterResolver {
@@ -36,5 +38,9 @@ public class WireMockExtension implements InvocationInterceptor, ParameterResolv
     @Override
     public Object resolveParameter(ParameterContext parameterContext, ExtensionContext extensionContext) throws ParameterResolutionException {
         return server;
+    }
+
+    public void verifyPost(String url) {
+    	server.verify(postRequestedFor(WireMock.urlEqualTo(url)));
     }
 }

@@ -68,6 +68,8 @@ public class ImportDocumentFromAPSoftToTheseosWorkflowRouteBuilderTest {
                 .until(() -> Stream.of(TEST_FILES).allMatch(f -> Files.exists(success.resolve(f)) &&
                         !Files.exists(in.resolve(f)) &&
                         !Files.exists(error.resolve(f))));
+
+        wireMock.verifyPost("/api/workflows/2?transition=uploadDocument");
     }
 
     @Test
