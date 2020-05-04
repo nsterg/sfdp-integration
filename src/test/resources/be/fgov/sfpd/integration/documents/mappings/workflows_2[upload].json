@@ -9,7 +9,7 @@
     },
     "headers": {
       "Authorization": {
-        "equalTo": "Bearer {\"user\":\"_SYS_\"}"
+        "equalTo": "Basic {\"user\":\"_SYS_\"}"
       }
     },
     "multipartPatterns": [

@@ -35,9 +35,11 @@ public class ImportDocumentFromAPSoftToTheseosWorkflowRouteBuilderAPIErrorTest {
 
     @BeforeEach
     public void setProperties(@TempDir Path in) {
-        camel.setProperty("theseos.workflow.api.url", "http://localhost:8090/api/workflows");
-        camel.setProperty("theseos.workflow.api.authorization", "Bearer {\"user\":\"_SYS_\"}");
-        camel.setProperty("camel.documents.input.uri", in.toUri().toASCIIString());
+        camel.setProperty("theseos.port", "8090");
+        camel.setProperty("theseos.host", "localhost");
+        camel.setProperty("theseos.workflow.api.url", "api/workflows");
+        camel.setProperty("theseos.workflow.api.authorization", "Basic {\"user\":\"_SYS_\"}");
+        camel.setProperty("route.documents.input.uri", in.toUri().toASCIIString());
     }
 
     @Test
@@ -50,11 +52,28 @@ public class ImportDocumentFromAPSoftToTheseosWorkflowRouteBuilderAPIErrorTest {
             }
         }
 
-        final Path error = in.resolve(".error");
+        final Path error = in.resolve("error");
 
         // wait up to 10 seconds until processed file has been moved to error folder by
         // camel
         await().atMost(10, SECONDS).until(() -> Stream.of(TEST_FILES).allMatch(f -> Files.exists(error.resolve(f))));
     }
+
+    @Test
+    public void shouldMoveFilesToErrorFolderWhenWorkflowUploadFails(@TempDir Path in) throws IOException {
+
+        wireMock.stubPostWithError("/api/workflows/2?transition=uploadDocument");
+
+        for (final String fileName : TEST_FILES) {
+            try (InputStream is = getClass().getResourceAsStream(fileName)) {
+                Files.copy(is, in.resolve(fileName));
+            }
+        }
+
+        final Path error = in.resolve(".error");
+
+        await().atMost(10, SECONDS).until(() -> Stream.of(TEST_FILES).allMatch(f -> Files.exists(error.resolve(f))));
+    }
+
 
 }

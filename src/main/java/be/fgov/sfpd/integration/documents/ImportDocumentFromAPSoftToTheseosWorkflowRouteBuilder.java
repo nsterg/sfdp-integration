@@ -1,11 +1,6 @@
 package be.fgov.sfpd.integration.documents;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.File;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.UncheckedIOException;
+import java.io.*;
 import java.net.ConnectException;
 import java.util.Collections;
 import java.util.Map;
@@ -16,6 +11,7 @@ import org.apache.camel.Predicate;
 import org.apache.camel.Processor;
 import org.apache.camel.builder.RouteBuilder;
 import org.apache.camel.builder.xml.Namespaces;
+import org.apache.camel.cdi.ContextName;
 import org.apache.camel.processor.validation.PredicateValidationException;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
@@ -24,26 +20,33 @@ import org.apache.http.entity.ContentType;
 import org.apache.http.entity.mime.MultipartEntityBuilder;
 import org.xml.sax.SAXParseException;
 
-/**
- * TODO workflow search may not be complete
- */
+@ContextName("centestim")
 public class ImportDocumentFromAPSoftToTheseosWorkflowRouteBuilder extends RouteBuilder {
 
-	private static final String HAS_EMBEDDED_WORKFLOWS_EXPR = "$._embedded.workflows[?(@.length() > 0)]";
-	private static final String VALID_FILENAME_REGEX = "\\d{11}D\\d{6}T\\d{8}\\.xml";
-	private static final String WORKFLOW_DETAILS_DIRECT_URI = "direct:getWorkflow";
-	private static final String WORKFLOWS_FROM_THESEOS_DIRECT_URI = "direct:workflowResults";
-	private static final String WORKFLOW_HREF_URI = "${header.workflow}";
-	private static final String EMBEDDED_WORKFLOWS_LINKS_PATH = "$._embedded.workflows[0]._links.self.href";
-	private static final String CAMEL_DOCUMENTS_INPUT_URI = "{{camel.documents.input.uri}}?fileName=${header.file}&move=.success&moveFailed=.error";
-	private static final String HEADER_UPLOAD_URI = "${header.upload}&throwExceptionOnFailure=false";
-	private static final String UPLOAD_DOC_TARGET_URL = "$._forms.uploadDocument._links.target.href";
-	private static final String THESEOS_WORKFLOW_API_URI = "{{theseos.workflow.api.url}}?niss=${header.inss}&definition=${header.type}";
-	private static final String XSD_VALIDATION_URI = "validator:be/fgov/sfpd/integration/documents/Document.xsd";
-	private static final String INPUT_URI = "{{camel.documents.input.uri}}?include=.*\\.xml&move=.success&moveFailed=.error";
-	private static final Map<String, String> TASK_TO_WORKFLOW = Collections.singletonMap("PUBLIC_RETIREMENT_ESTIMATION", "Centestim");
+	private static final Map<String, String> TASK_TO_WORKFLOW = Collections.singletonMap("PUBLIC_RETIREMENT_ESTIMATION", "Estimation");
 	private static final String AUTHORIZATION = "{{theseos.workflow.api.authorization}}";
 	private static final Namespaces NS = new Namespaces("tns", "urn:document-schema");
+
+	private static final String HAS_EMBEDDED_WORKFLOWS_EXPR = "$._embedded.workflows[?(@.length() > 0)]";
+	private static final String EMBEDDED_WORKFLOWS_LINKS_PATH = "$._embedded.workflows[0]._links.self.href";
+	private static final String UPLOAD_DOC_TARGET_URL = "_forms.execute[?(@._links.target.name == 'uploadDocumentWithoutTranslation')]._links.target.href";
+
+	private static final String VALID_FILENAME_REGEX = "\\d{11}D\\d{6}T\\d{8}\\.xml";
+
+	private static final String WORKFLOW_DETAILS_DIRECT_URI = "direct:getWorkflow";
+	private static final String WORKFLOWS_FROM_THESEOS_DIRECT_URI = "direct:workflowResults";
+
+	private static final String WORKFLOW_HREF_URI = "${header.workflow}";
+	private static final String HEADER_UPLOAD_URI = "${header.upload}";
+
+	private static final String CAMEL_DOCUMENTS_INPUT_URI = "{{route.documents.input.uri}}?fileName=${header.file}&move=success&moveFailed=error";
+	private static final String THESEOS_WORKFLOW_API_PARAMETERS="?niss=${header.inss}&definition=${header.type}" +
+			"&search:sortField=lastUpdateTime&search:sortOrder";
+	private static final String THESEOS_WORKFLOW_API_URI = "http4://{{theseos.host}}:{{theseos.port}}/" +
+			"{{theseos.workflow.api.url}}";
+	private static final String XSD_VALIDATION_URI = "validator:be/fgov/sfpd/integration/documents/Document.xsd";
+	private static final String INPUT_URI = "{{route.documents.input.uri}}?include=.*\\.xml&move=success&moveFailed=error";
+
 
 	@Override
 	public void configure() {
@@ -54,11 +57,11 @@ public class ImportDocumentFromAPSoftToTheseosWorkflowRouteBuilder extends Route
 		onException(ConnectException.class)
 				.log("Failed to connect to Theseos workflow API while processing file ${header.CamelFileName}")
 				.process(movePdfToErrorFolder());
-		onException(PredicateValidationException.class)
-				.log("Some error occurred while uploading pdf file. Original xml was: ${header.CamelFileName}");
 		onException(Exception.class)
 				.log("Some error occurred while processing file ${header.CamelFileName}")
 				.process(movePdfToErrorFolder());
+		onException(PredicateValidationException.class)
+				.log("Some error occurred while uploading pdf file. Original xml was: ${header.CamelFileName}");
 
 		from(INPUT_URI)
 				.log("Processing file ${header.CamelFileName}")
@@ -68,7 +71,7 @@ public class ImportDocumentFromAPSoftToTheseosWorkflowRouteBuilder extends Route
 				.process(mapImportTaskToWorkflowType())
 				.setHeader("Authorization", simple(AUTHORIZATION))
 				.process(prepareForHttpGetRequest())
-				.toD(THESEOS_WORKFLOW_API_URI)
+				.toD(THESEOS_WORKFLOW_API_URI+THESEOS_WORKFLOW_API_PARAMETERS)
 				.to(WORKFLOWS_FROM_THESEOS_DIRECT_URI);
 
 		from(WORKFLOWS_FROM_THESEOS_DIRECT_URI)
@@ -77,25 +80,29 @@ public class ImportDocumentFromAPSoftToTheseosWorkflowRouteBuilder extends Route
 				.when().jsonpath(HAS_EMBEDDED_WORKFLOWS_EXPR)
 				// extract first workflow url into header
 				.setHeader("workflow").jsonpath(EMBEDDED_WORKFLOWS_LINKS_PATH)
+				.process(e -> transformUrlInHeader(e, "workflow"))
 				.log("found workflow ${header.workflow}")
 				.otherwise()
-				.throwException(RuntimeException.class, "No workflow")
+				.throwException(RuntimeException.class, "No workflow found")
 				.end()
 				.toD(WORKFLOW_HREF_URI)
 				.to(WORKFLOW_DETAILS_DIRECT_URI);
 
 		from(WORKFLOW_DETAILS_DIRECT_URI)
-				.setHeader("upload").jsonpath(UPLOAD_DOC_TARGET_URL)
+				.convertBodyTo(String.class)
+				.setHeader("upload").jsonpath(UPLOAD_DOC_TARGET_URL, String.class)
 				.choice()
 				.when(cantUpload())
-				.throwException(RuntimeException.class, "No uploadDocument transition")
+				.throwException(RuntimeException.class, "No uploadDocumentWithoutTranslation transition")
 				.otherwise()
+				.process(e -> transformUrlInHeader(e, "upload"))
 				.log("upload document to ${header.upload}")
 				.pollEnrich().simple(CAMEL_DOCUMENTS_INPUT_URI)
 				.aggregationStrategy(this::aggregate)
+				.log("Processing file ${header.CamelFileName}")
 				.process(prepareForHttpPostRequest())
 				.toD(HEADER_UPLOAD_URI)
-				.validate(isResponse302())
+				.validate(isOkResponse())
 				.end()
 				.end();
 	}
@@ -111,12 +118,18 @@ public class ImportDocumentFromAPSoftToTheseosWorkflowRouteBuilder extends Route
 		};
 	}
 
-	private Predicate isResponse302() {
-		return header(Exchange.HTTP_RESPONSE_CODE).isEqualTo(302);
+	private Predicate isOkResponse() {
+		return header(Exchange.HTTP_RESPONSE_CODE).isEqualTo(200);
 	}
 
 	private Predicate cantUpload() {
 		return header("upload").isNull();
+	}
+
+	private void transformUrlInHeader(Exchange exchange, String headerName) {
+		String url = exchange.getIn().getHeader(headerName, String.class);
+		String correctUrl = url.replace("http:", "http4:").replace("https:", "https4:");
+		exchange.getIn().setHeader(headerName, correctUrl);
 	}
 
 	private Processor extractXMLValues() {
@@ -138,7 +151,6 @@ public class ImportDocumentFromAPSoftToTheseosWorkflowRouteBuilder extends Route
 	private Processor mapImportTaskToWorkflowType() {
 		return (exchange) -> {
 			final String type = TASK_TO_WORKFLOW.get(exchange.getIn().getHeader("task", String.class));
-
 			exchange.getIn().setHeader("type", type);
 		};
 	}
@@ -166,8 +178,6 @@ public class ImportDocumentFromAPSoftToTheseosWorkflowRouteBuilder extends Route
 
 		payload.getIn().setHeaders(voucher.getIn().getHeaders());
 		payload.getIn().setHeader(Exchange.CONTENT_TYPE, resultEntity.getContentType().getValue());
-		// payload.getIn().setBody(resultEntity); // TODO find a way to make it work
-		// <workaround>
 		try {
 			final ByteArrayOutputStream baos = new ByteArrayOutputStream();
 			resultEntity.writeTo(baos);
@@ -175,25 +185,24 @@ public class ImportDocumentFromAPSoftToTheseosWorkflowRouteBuilder extends Route
 		} catch (final IOException ioException) {
 			throw new UncheckedIOException(ioException);
 		}
-		// </workaround>
 		return payload;
 	}
 
 	private Processor movePdfToErrorFolder() {
 		return (exchange) -> {
 			String parent = (String) exchange.getIn().getHeader(Exchange.FILE_PARENT);
-            File parentDir = new File(parent);
+			File parentDir = new File(parent);
 
-            String filename = (String) exchange.getIn().getHeader(Exchange.FILE_NAME_ONLY);
-            String baseName = FilenameUtils.getBaseName(filename);
+			String filename = (String) exchange.getIn().getHeader(Exchange.FILE_NAME_ONLY);
+			String baseName = FilenameUtils.getBaseName(filename);
 
-            File source = new File(parentDir, baseName + ".pdf");
-    		File dest = new File(FilenameUtils.concat(parent, ".error"), source.getName());
-    		if (source.exists()) {
-    			if (!dest.exists()) {
-    				FileUtils.moveFile(source, dest);
-    			}
-    		}
+			File source = new File(parentDir, baseName + ".pdf");
+			if (source.exists()) {
+				File dest = new File(FilenameUtils.concat(parent, ".error"), source.getName());
+				if (!dest.exists()) {
+					FileUtils.moveFile(source, dest);
+				}
+			}
 		};
 	}
 }

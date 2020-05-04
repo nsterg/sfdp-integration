@@ -7,12 +7,12 @@
         "equalTo": "57030824554"
       },
       "definition": {
-        "equalTo": "Centestim"
+        "equalTo": "Estimation"
       }
     },
     "headers": {
       "Authorization": {
-        "equalTo": "Bearer {\"user\":\"_SYS_\"}"
+        "equalTo": "Basic {\"user\":\"_SYS_\"}"
       }
     }
   },
