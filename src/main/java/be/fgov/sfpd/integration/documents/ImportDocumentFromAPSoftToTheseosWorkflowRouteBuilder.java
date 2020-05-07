@@ -96,6 +96,7 @@ public class ImportDocumentFromAPSoftToTheseosWorkflowRouteBuilder extends Route
 				.throwException(RuntimeException.class, "No uploadDocumentWithoutTranslation transition")
 				.otherwise()
 				.process(e -> transformUrlInHeader(e, "upload"))
+				.process(e -> setTimeOutInHeader(e,"upload", "60000"))
 				.log("upload document to ${header.upload}")
 				.pollEnrich().simple(CAMEL_DOCUMENTS_INPUT_URI)
 				.aggregationStrategy(this::aggregate)
@@ -103,7 +104,6 @@ public class ImportDocumentFromAPSoftToTheseosWorkflowRouteBuilder extends Route
 				.process(prepareForHttpPostRequest())
 				.toD(HEADER_UPLOAD_URI)
 				.validate(isOkResponse())
-				.end()
 				.end();
 	}
 
@@ -130,6 +130,14 @@ public class ImportDocumentFromAPSoftToTheseosWorkflowRouteBuilder extends Route
 		String url = exchange.getIn().getHeader(headerName, String.class);
 		String correctUrl = url.replace("http:", "http4:").replace("https:", "https4:");
 		exchange.getIn().setHeader(headerName, correctUrl);
+	}
+
+	private void setTimeOutInHeader(Exchange exchange, String headerName,  String milisecond) {
+		String url = exchange.getIn().getHeader(headerName, String.class);
+		String newUrl = url + "&connectionRequestTimeout=" + milisecond +
+				"&connectTimeout=" + milisecond +
+				"&socketTimeout=" + milisecond;
+		exchange.getIn().setHeader(headerName, newUrl);
 	}
 
 	private Processor extractXMLValues() {
@@ -198,10 +206,9 @@ public class ImportDocumentFromAPSoftToTheseosWorkflowRouteBuilder extends Route
 
 			File source = new File(parentDir, baseName + ".pdf");
 			if (source.exists()) {
-				File dest = new File(FilenameUtils.concat(parent, ".error"), source.getName());
-				if (!dest.exists()) {
-					FileUtils.moveFile(source, dest);
-				}
+				File errorFolder = new File(FilenameUtils.concat(parent, "error"));
+				File pdfFile = new File(errorFolder, source.getName());
+				FileUtils.moveFile(errorFolder, pdfFile);
 			}
 		};
 	}
