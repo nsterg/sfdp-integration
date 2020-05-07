@@ -70,7 +70,7 @@ public class ImportDocumentFromAPSoftToTheseosWorkflowRouteBuilderAPIErrorTest {
             }
         }
 
-        final Path error = in.resolve(".error");
+        final Path error = in.resolve("error");
 
         await().atMost(10, SECONDS).until(() -> Stream.of(TEST_FILES).allMatch(f -> Files.exists(error.resolve(f))));
     }
