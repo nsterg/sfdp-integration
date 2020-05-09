@@ -2,6 +2,8 @@ package be.fgov.sfpd.integration.documents;
 
 import java.io.*;
 import java.net.ConnectException;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Collections;
 import java.util.Map;
 
@@ -90,6 +92,7 @@ public class ImportDocumentFromAPSoftToTheseosWorkflowRouteBuilder extends Route
 
 		from(WORKFLOW_DETAILS_DIRECT_URI)
 				.convertBodyTo(String.class)
+				.process(debug())
 				.setHeader("upload").jsonpath(UPLOAD_DOC_TARGET_URL, String.class)
 				.choice()
 				.when(cantUpload())
@@ -108,6 +111,17 @@ public class ImportDocumentFromAPSoftToTheseosWorkflowRouteBuilder extends Route
 	}
 
 	private Processor validateFilename() {
+		return (exchange) -> {
+
+			final String filename = exchange.getIn().getHeader(Exchange.FILE_NAME, String.class);
+			if (!filename.matches(VALID_FILENAME_REGEX)) {
+				throw new RuntimeException("Invalid file found in input. Filename was: " + filename
+						+ ". Expected file format is: " + VALID_FILENAME_REGEX);
+			}
+		};
+	}
+
+	private Processor debug() {
 		return (exchange) -> {
 
 			final String filename = exchange.getIn().getHeader(Exchange.FILE_NAME, String.class);
@@ -206,8 +220,8 @@ public class ImportDocumentFromAPSoftToTheseosWorkflowRouteBuilder extends Route
 
 			File source = new File(parentDir, baseName + ".pdf");
 			if (source.exists()) {
-				File dest = new File(FilenameUtils.concat(parent, "error"), source.getName());
- 				FileUtils.moveFile(source, dest);
+				Path dest = Paths.get(parent, "error", source.getName());
+ 				FileUtils.moveFile(source, dest.toFile());
 			}
 		};
 	}
