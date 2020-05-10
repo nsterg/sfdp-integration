@@ -92,7 +92,6 @@ public class ImportDocumentFromAPSoftToTheseosWorkflowRouteBuilder extends Route
 
 		from(WORKFLOW_DETAILS_DIRECT_URI)
 				.convertBodyTo(String.class)
-				.process(debug())
 				.setHeader("upload").jsonpath(UPLOAD_DOC_TARGET_URL, String.class)
 				.choice()
 				.when(cantUpload())
@@ -111,17 +110,6 @@ public class ImportDocumentFromAPSoftToTheseosWorkflowRouteBuilder extends Route
 	}
 
 	private Processor validateFilename() {
-		return (exchange) -> {
-
-			final String filename = exchange.getIn().getHeader(Exchange.FILE_NAME, String.class);
-			if (!filename.matches(VALID_FILENAME_REGEX)) {
-				throw new RuntimeException("Invalid file found in input. Filename was: " + filename
-						+ ". Expected file format is: " + VALID_FILENAME_REGEX);
-			}
-		};
-	}
-
-	private Processor debug() {
 		return (exchange) -> {
 
 			final String filename = exchange.getIn().getHeader(Exchange.FILE_NAME, String.class);
