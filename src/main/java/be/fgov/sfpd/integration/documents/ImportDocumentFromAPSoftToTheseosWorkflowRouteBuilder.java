@@ -2,8 +2,10 @@ package be.fgov.sfpd.integration.documents;
 
 import java.io.*;
 import java.net.ConnectException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.util.Collections;
 import java.util.Map;
 
@@ -15,7 +17,6 @@ import org.apache.camel.builder.RouteBuilder;
 import org.apache.camel.builder.xml.Namespaces;
 import org.apache.camel.cdi.ContextName;
 import org.apache.camel.processor.validation.PredicateValidationException;
-import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.http.HttpEntity;
 import org.apache.http.entity.ContentType;
@@ -41,7 +42,7 @@ public class ImportDocumentFromAPSoftToTheseosWorkflowRouteBuilder extends Route
 	private static final String WORKFLOW_HREF_URI = "${header.workflow}";
 	private static final String HEADER_UPLOAD_URI = "${header.upload}";
 
-	private static final String CAMEL_DOCUMENTS_INPUT_URI = "{{route.documents.input.uri}}?fileName=${header.file}&move=success&moveFailed=error";
+	private static final String CAMEL_DOCUMENTS_INPUT_URI = "{{route.documents.input.uri}}?fileName=${header.file}&move=success";
 	private static final String THESEOS_WORKFLOW_API_PARAMETERS="?niss=${header.inss}&definition=${header.type}" +
 			"&search:sortField=lastUpdateTime&search:sortOrder";
 	private static final String THESEOS_WORKFLOW_API_URI = "http4://{{theseos.host}}:{{theseos.port}}/" +
@@ -109,6 +110,7 @@ public class ImportDocumentFromAPSoftToTheseosWorkflowRouteBuilder extends Route
 				.end();
 	}
 
+
 	private Processor validateFilename() {
 		return (exchange) -> {
 
@@ -125,7 +127,7 @@ public class ImportDocumentFromAPSoftToTheseosWorkflowRouteBuilder extends Route
 	}
 
 	private Predicate cantUpload() {
-		return header("upload").isNull();
+		return header("upload").isEqualTo("[]");
 	}
 
 	private void transformUrlInHeader(Exchange exchange, String headerName) {
@@ -201,16 +203,25 @@ public class ImportDocumentFromAPSoftToTheseosWorkflowRouteBuilder extends Route
 	private Processor movePdfToErrorFolder() {
 		return (exchange) -> {
 			String parent = (String) exchange.getIn().getHeader(Exchange.FILE_PARENT);
-			File parentDir = new File(parent);
 
-			String filename = (String) exchange.getIn().getHeader(Exchange.FILE_NAME_ONLY);
+			String filename = (String) exchange.getIn().getHeader(Exchange.FILE_PATH);
 			String baseName = FilenameUtils.getBaseName(filename);
 
-			File source = new File(parentDir, baseName + ".pdf");
-			if (source.exists()) {
-				File errorFolder = new File(FilenameUtils.concat(parent, "error"));
-				File pdfFile = new File(errorFolder, source.getName());
-				FileUtils.moveFile(errorFolder, pdfFile);
+			Path source = Paths.get(parent, baseName + ".pdf");
+			log.info("computed pdf source = {}", source);
+			if (Files.exists(source)) {
+				Path dest = Paths.get(parent, "error");
+				if (!Files.exists(dest)) {
+					log.info("creating dir = {}", dest);
+					Files.createDirectories(dest);
+				}
+				Path pdfDes = dest.resolve(source.getFileName());
+				log.info("pdf destination = {}", pdfDes);
+				try {
+					Files.move(source, pdfDes, StandardCopyOption.REPLACE_EXISTING);
+				} catch (Exception e) {
+					log.error("Error moving pdf file", e);
+				}
 			}
 		};
 	}
